@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/2.4.2/openseadragon.min.js"></script>
+        <style>
+            body { font-family: Arial, sans-serif; }
+            .container {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                padding: 20px;
+            }
+            #openseadragon1 {
+                width: 800px;
+                height: 600px;
+                margin-bottom: 20px;
+            }
+            #alpha-slider { width: 800px; }
+            #apply-button {
+                margin-top: 10px;
+                padding: 5px 15px;
+                font-size: 16px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div id="openseadragon1"></div>
+            <label for="alpha-slider">Adjust Overlay Transparency:</label>
+            <input type="range" id="alpha-slider" min="0" max="1" step="0.01" value="0.5">
+            <button id="apply-button" onclick="applyNewTransparency()">Apply New Transparency</button>
+        </div>
+        <script type="text/javascript">
+            var viewer;
+            const API_URL = "http://<YOUR_EC2_PUBLIC_IP>:5000";
+
+            function initializeViewer() {
+                if (viewer) {
+                    viewer.destroy();
+                }
+                viewer = OpenSeadragon({
+                    id: "openseadragon1",
+                    prefixUrl: "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/2.4.2/images/",
+                    tileSources: {
+                        height: 40000,  // Replace this with the actual height value
+                        width: 40000,   // Replace this with the actual width value
+                        tileSize: 512,
+                        minLevel: 0,
+                        maxLevel: 18,
+                        getTileUrl: function(level, x, y) {
+                            return API_URL + "/tile/" + level + "/" + x + "/" + y + "/?v=" + new Date().getTime();
+                        }
+                    },
+                    showNavigator: true,
+                    preserveViewport: true,
+                    immediateRender: true,
+                    useCanvas: true,
+                });
+            }
+
+            function applyNewTransparency() {
+                var alphaValue = document.getElementById("alpha-slider").value;
+                fetch(API_URL + "/set_alpha", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ alpha: alphaValue }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        initializeViewer();
+                    }
+                });
+            }
+
+            window.onload = function() {
+                initializeViewer();
+            }
+        </script>
+    </body>
+</html>
